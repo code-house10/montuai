@@ -27,6 +27,10 @@ export function ensureSchema() {
     `CREATE TABLE IF NOT EXISTS brand_profiles (
       website_id TEXT PRIMARY KEY REFERENCES websites(id),
       data TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+    `CREATE TABLE IF NOT EXISTS artifacts (
+      id TEXT PRIMARY KEY, website_id TEXT NOT NULL REFERENCES websites(id),
+      kind TEXT NOT NULL, title TEXT NOT NULL, data TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
     LEDGER_SQL,
   ]));
 }

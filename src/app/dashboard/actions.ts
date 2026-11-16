@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { PLANS } from "@/lib/config";
 import { requireOrg } from "@/lib/session";
 import { brandFromForm, saveBrand } from "@/lib/brand";
+import { PLATFORMS, createArticle, createSocial, type Platform } from "@/lib/content";
 import { runAnalysis } from "@/lib/analysis";
 import { currentSite, listSites } from "@/lib/sites";
 
@@ -64,6 +65,30 @@ export async function saveBrandAction(_prev: string | null, form: FormData): Pro
   await saveBrand(site.id, brandFromForm(form));
   revalidatePath("/dashboard/brand");
   return "تم الحفظ.";
+}
+
+export async function createArticleAction(_prev: string | null, form: FormData): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  const topic = String(form.get("topic") ?? "").trim().slice(0, 500);
+  if (topic.length < 5) return "اكتب موضوع المقال.";
+  const error = await createArticle(orgId, site, topic, String(form.get("keyword") ?? "").trim().slice(0, 100));
+  revalidatePath("/dashboard", "layout");
+  return error;
+}
+
+export async function createSocialAction(_prev: string | null, form: FormData): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  const topic = String(form.get("topic") ?? "").trim().slice(0, 500);
+  if (topic.length < 5) return "اكتب موضوع المنشور.";
+  const platforms = form.getAll("platforms").map(String).filter((p): p is Platform => p in PLATFORMS);
+  if (platforms.length === 0) return "اختر منصة واحدة على الأقل.";
+  const error = await createSocial(orgId, site, topic, platforms);
+  revalidatePath("/dashboard", "layout");
+  return error;
 }
 
 export async function logout() {
