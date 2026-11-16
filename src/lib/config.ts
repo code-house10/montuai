@@ -7,3 +7,6 @@ export const PLANS = {
   pro: { label: "Pro", monthlyTokens: 4400, maxSites: 8 },
 } as const;
 export type Plan = keyof typeof PLANS;
+
+/** Token price of each action. */
+export const COSTS = { analysis: 100 } as const;

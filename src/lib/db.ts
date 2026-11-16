@@ -21,6 +21,9 @@ export function ensureSchema() {
       id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES orgs(id),
       name TEXT NOT NULL, url TEXT, type TEXT, language TEXT NOT NULL DEFAULT 'ar',
       created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+    `CREATE TABLE IF NOT EXISTS analyses (
+      id TEXT PRIMARY KEY, website_id TEXT NOT NULL REFERENCES websites(id),
+      data TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
     LEDGER_SQL,
   ]));
 }

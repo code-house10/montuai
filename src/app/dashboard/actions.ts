@@ -6,6 +6,8 @@ import { signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/config";
 import { requireOrg } from "@/lib/session";
+import { runAnalysis } from "@/lib/analysis";
+import { currentSite, listSites } from "@/lib/sites";
 
 export async function addSite(_prev: string | null, form: FormData): Promise<string | null> {
   const { orgId, plan } = await requireOrg();
@@ -43,6 +45,15 @@ export async function selectSite(form: FormData) {
   // Ownership is checked where the cookie is read (currentSite), not here.
   (await cookies()).set("site", String(form.get("id") ?? ""), { httpOnly: true, sameSite: "lax", path: "/" });
   revalidatePath("/dashboard", "layout");
+}
+
+export async function analyzeSite(): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  const error = await runAnalysis(orgId, site);
+  revalidatePath("/dashboard", "layout");
+  return error;
 }
 
 export async function logout() {
