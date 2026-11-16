@@ -1,7 +1,7 @@
 import { getBrand } from "./brand";
 import { COSTS } from "./config";
 import { db } from "./db";
-import { generateJson } from "./gemini";
+import { aiErrorMessage, generateJson } from "./gemini";
 import { charge, grant } from "./tokens";
 
 export const PLATFORMS = { facebook: "فيسبوك", instagram: "إنستجرام", x: "إكس", linkedin: "لينكدإن", tiktok: "تيك توك" } as const;
@@ -50,7 +50,8 @@ async function paid(
   } catch (e) {
     console.error(`${kind} generation failed`, e);
     await grant(db, orgId, cost, `استرداد: فشل ${label}`);
-    return "فشل الإنشاء. تم ردّ الرصيد، حاول مرة أخرى.";
+    const ai = aiErrorMessage(e);
+    return ai ? `${ai} تم ردّ الرصيد.` : "فشل الإنشاء. تم ردّ الرصيد، حاول مرة أخرى.";
   }
 }
 

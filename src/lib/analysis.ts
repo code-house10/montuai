@@ -1,7 +1,7 @@
 import { COSTS } from "./config";
 import { db } from "./db";
 import { extractFacts, fetchPublicHtml } from "./fetch-site";
-import { generateJson } from "./gemini";
+import { aiErrorMessage, generateJson } from "./gemini";
 import { charge, grant } from "./tokens";
 
 export type Analysis = {
@@ -67,6 +67,8 @@ ${JSON.stringify({ url: page.url, title: facts.title, description: facts.descrip
   } catch (e) {
     console.error("analysis failed", e);
     await grant(db, orgId, COSTS.analysis, "استرداد: فشل تحليل الموقع");
+    const ai = aiErrorMessage(e);
+    if (ai) return `${ai} تم ردّ الرصيد.`;
     const msg = e instanceof Error ? e.message : "";
     if (/blocked|ENOTFOUND|site responded|not an html|redirect|fetch failed|readable text/i.test(msg))
       return "تعذّر قراءة الموقع. تأكد من الرابط وأنه متاح للعموم. تم ردّ الرصيد.";
