@@ -47,6 +47,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <Link href="/dashboard/content" className="rounded-lg px-3 py-2 hover:bg-white">
             إنشاء المحتوى
           </Link>
+          <Link href="/dashboard/builder" className="rounded-lg px-3 py-2 hover:bg-white">
+            بناء موقع
+          </Link>
           <Link href="/dashboard/usage" className="rounded-lg px-3 py-2 hover:bg-white">
             الاستخدام
           </Link>

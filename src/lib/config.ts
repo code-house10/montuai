@@ -9,4 +9,4 @@ export const PLANS = {
 export type Plan = keyof typeof PLANS;
 
 /** Token price of each action. */
-export const COSTS = { analysis: 100, article: 60, social: 30 } as const;
+export const COSTS = { analysis: 100, article: 60, social: 30, pageBuild: 150, pageEdit: 50 } as const;

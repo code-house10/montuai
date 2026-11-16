@@ -1,5 +1,5 @@
-/** Asks Gemini for a JSON object. Throws on missing key, HTTP errors, or unparseable output. */
-export async function generateJson(prompt: string): Promise<Record<string, unknown>> {
+/** Raw model text. Throws on missing key or HTTP errors. */
+export async function generateText(prompt: string, json = false): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   // The lite model has its own (larger) free quota, so it covers the main one when that is
@@ -15,15 +15,19 @@ export async function generateJson(prompt: string): Promise<Record<string, unkno
       signal,
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+        generationConfig: { ...(json && { responseMimeType: "application/json" }), temperature: 0.4 },
       }),
     });
     if (![404, 429, 503].includes(res.status)) break;
   }
   if (!res.ok) throw new Error(`gemini responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
-  const parsed: unknown = JSON.parse(text);
+  return data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+}
+
+/** Asks Gemini for a JSON object. Throws additionally on unparseable output. */
+export async function generateJson(prompt: string): Promise<Record<string, unknown>> {
+  const parsed: unknown = JSON.parse(await generateText(prompt, true));
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("gemini returned non-object");
   return parsed as Record<string, unknown>;
 }

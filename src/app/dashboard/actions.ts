@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/config";
@@ -9,6 +10,7 @@ import { requireOrg } from "@/lib/session";
 import { brandFromForm, saveBrand } from "@/lib/brand";
 import { PLATFORMS, createArticle, createSocial, type Platform } from "@/lib/content";
 import { runAnalysis } from "@/lib/analysis";
+import { buildPage, editPage, setPublished } from "@/lib/builder";
 import { currentSite, listSites } from "@/lib/sites";
 
 export async function addSite(_prev: string | null, form: FormData): Promise<string | null> {
@@ -89,6 +91,38 @@ export async function createSocialAction(_prev: string | null, form: FormData): 
   const error = await createSocial(orgId, site, topic, platforms);
   revalidatePath("/dashboard", "layout");
   return error;
+}
+
+export async function buildPageAction(_prev: string | null, form: FormData): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  const brief = String(form.get("brief") ?? "").trim().slice(0, 1500);
+  if (brief.length < 10) return "اكتب وصفاً لما تريد بناءه.";
+  const pick = (k: string) => String(form.get(k) ?? "").slice(0, 30);
+  const r = await buildPage(orgId, site, { brief, type: pick("type"), style: pick("style"), goal: pick("goal") });
+  revalidatePath("/dashboard", "layout");
+  if ("error" in r) return r.error;
+  redirect(`/dashboard/builder?page=${r.id}`);
+}
+
+export async function editPageAction(_prev: string | null, form: FormData): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  const instruction = String(form.get("instruction") ?? "").trim().slice(0, 1000);
+  if (instruction.length < 3) return "اكتب التعديل المطلوب.";
+  const error = await editPage(orgId, site, String(form.get("pageId") ?? ""), instruction);
+  revalidatePath("/dashboard", "layout");
+  return error;
+}
+
+export async function setPublishedAction(form: FormData) {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return;
+  await setPublished(site.id, String(form.get("pageId") ?? ""), form.get("publish") === "1");
+  revalidatePath("/dashboard/builder");
 }
 
 export async function logout() {
