@@ -2,17 +2,24 @@
 export async function generateJson(prompt: string): Promise<Record<string, unknown>> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  // The lite model has its own (larger) free quota, so it covers the main one when that is
+  // out of quota (429), overloaded (503) or retired (404).
+  const models = [process.env.GEMINI_MODEL || "gemini-flash-latest", "gemini-flash-lite-latest"];
+  const signal = AbortSignal.timeout(50_000); // one deadline for all attempts; the route allows 60s
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": key },
-    signal: AbortSignal.timeout(45_000),
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
-    }),
-  });
+  let res!: Response;
+  for (const model of models) {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": key },
+      signal,
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+      }),
+    });
+    if (![404, 429, 503].includes(res.status)) break;
+  }
   if (!res.ok) throw new Error(`gemini responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
