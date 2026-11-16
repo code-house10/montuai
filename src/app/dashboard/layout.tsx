@@ -41,6 +41,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <Link href="/dashboard" className="rounded-lg px-3 py-2 hover:bg-white">
             لوحة التحكم
           </Link>
+          <Link href="/dashboard/brand" className="rounded-lg px-3 py-2 hover:bg-white">
+            ملف العلامة
+          </Link>
           <Link href="/dashboard/usage" className="rounded-lg px-3 py-2 hover:bg-white">
             الاستخدام
           </Link>

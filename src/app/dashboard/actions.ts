@@ -6,6 +6,7 @@ import { signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/config";
 import { requireOrg } from "@/lib/session";
+import { brandFromForm, saveBrand } from "@/lib/brand";
 import { runAnalysis } from "@/lib/analysis";
 import { currentSite, listSites } from "@/lib/sites";
 
@@ -54,6 +55,15 @@ export async function analyzeSite(): Promise<string | null> {
   const error = await runAnalysis(orgId, site);
   revalidatePath("/dashboard", "layout");
   return error;
+}
+
+export async function saveBrandAction(_prev: string | null, form: FormData): Promise<string | null> {
+  const { orgId } = await requireOrg();
+  const site = await currentSite(await listSites(orgId));
+  if (!site) return "أضف موقعاً أولاً.";
+  await saveBrand(site.id, brandFromForm(form));
+  revalidatePath("/dashboard/brand");
+  return "تم الحفظ.";
 }
 
 export async function logout() {
