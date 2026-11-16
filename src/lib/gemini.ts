@@ -26,8 +26,12 @@ export function aiErrorMessage(e: unknown): string | null {
   const m = e instanceof Error ? e.message : "";
   if (/GEMINI_API_KEY is not set/.test(m)) return "مفتاح Gemini غير مضاف في إعدادات الخادم (GEMINI_API_KEY).";
   if (/gemini responded 429/.test(m)) return "تم تجاوز حد الاستخدام لمفتاح Gemini. انتظر قليلاً أو فعّل الفوترة.";
-  if (/gemini responded 40[013]/.test(m)) return "مفتاح Gemini غير صالح أو غير مسموح له.";
+  if (/location is not supported/i.test(m)) return "Gemini غير متاح من منطقة الخادم. غيّر منطقة الدوال في Vercel إلى منطقة أمريكية.";
+  // ponytail: shows Google's own reason while testing; drop the detail before public launch.
+  const detail = /"message":\s*"([^"]{0,160})/.exec(m)?.[1] ?? "";
+  if (/gemini responded 40[13]/.test(m) || /API key/i.test(m)) return `مفتاح Gemini غير صالح أو غير مسموح له. (${detail})`;
+  if (/gemini responded 400/.test(m)) return `Gemini رفض الطلب. (${detail})`;
   if (/gemini responded 404/.test(m)) return "اسم نموذج Gemini غير صحيح (GEMINI_MODEL).";
-  if (/gemini responded 5dd/.test(m)) return "خدمة Gemini غير متاحة الآن. حاول بعد قليل.";
+  if (/gemini responded 5\d\d/.test(m)) return "خدمة Gemini غير متاحة الآن. حاول بعد قليل.";
   return null;
 }
