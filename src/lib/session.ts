@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { auth } from "@/auth";
 import { db, ensureSchema } from "./db";
 import { PLANS, type Plan } from "./config";
@@ -9,6 +10,9 @@ import { grant } from "./tokens";
  * Ignored in production builds, so it can never open a deployed site.
  */
 export async function sessionUser() {
+  // Auth.js re-encrypts the session cookie (random IV) on every read; without this Next treats
+  // the page as prerenderable and fails production renders with "blocking-prerender-crypto".
+  await connection();
   const dev = process.env.NODE_ENV !== "production" && process.env.DEV_USER_EMAIL;
   if (dev) return { email: dev, name: null, image: null };
   const u = (await auth())?.user;
