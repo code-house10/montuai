@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { auth, signIn } from "@/auth";
+import { signIn } from "@/auth";
 import { APP_NAME } from "@/lib/config";
+import { sessionUser } from "@/lib/session";
 
 export default async function Home() {
-  if ((await auth())?.user) redirect("/dashboard");
+  if (await sessionUser()) redirect("/dashboard");
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 px-4 text-center">
       <p className="text-sm font-semibold text-brand">{APP_NAME}</p>

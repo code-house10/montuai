@@ -2,7 +2,7 @@
 export const APP_NAME = "مسوّق";
 
 export const PLANS = {
-  free: { label: "مجاني", monthlyTokens: 250, maxSites: 1 },
+  free: { label: "مجاني", monthlyTokens: 100000, maxSites: 1 }, // ponytail: test value, back to 250 before public launch (admin panel will set per-user grants)
   starter: { label: "Starter", monthlyTokens: 2000, maxSites: 3 },
   pro: { label: "Pro", monthlyTokens: 4400, maxSites: 8 },
 } as const;
