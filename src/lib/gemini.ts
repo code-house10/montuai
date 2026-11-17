@@ -3,23 +3,30 @@ export async function generateText(prompt: string, json = false): Promise<string
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   // The lite model has its own (larger) free quota, so it covers the main one when that is
-  // out of quota (429), overloaded (503) or retired (404).
-  const models = [process.env.GEMINI_MODEL || "gemini-flash-latest", "gemini-flash-lite-latest"];
-  const signal = AbortSignal.timeout(50_000); // one deadline for all attempts; the route allows 60s
+  // out of quota (429), overloaded (503), retired (404) or silent for 20s (seen on the free tier).
+  const models = [...new Set([process.env.GEMINI_MODEL || "gemini-flash-latest", "gemini-flash-lite-latest"])];
+  const deadline = AbortSignal.timeout(50_000); // one deadline for all attempts; the route allows 60s
 
-  let res!: Response;
-  for (const model of models) {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": key },
-      signal,
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { ...(json && { responseMimeType: "application/json" }), temperature: 0.4 },
-      }),
-    });
+  let res: Response | undefined;
+  for (const [i, model] of models.entries()) {
+    const last = i === models.length - 1;
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": key },
+        signal: last ? deadline : AbortSignal.any([deadline, AbortSignal.timeout(20_000)]),
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { ...(json && { responseMimeType: "application/json" }), temperature: 0.4 },
+        }),
+      });
+    } catch (e) {
+      if (last || deadline.aborted) throw e;
+      continue; // this model hung; try the next one
+    }
     if (![404, 429, 503].includes(res.status)) break;
   }
+  if (!res) throw new Error("gemini: no response");
   if (!res.ok) throw new Error(`gemini responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
